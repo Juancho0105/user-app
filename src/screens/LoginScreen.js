@@ -81,8 +81,8 @@ export default function LoginScreen({ navigation }) {
   };
 
   const handleForgotPassword = () => {
-    // si no tienes pantalla, al menos feedback
-    Alert.alert('Recuperación', 'Funcionalidad de recuperación en construcción.');
+    navigation.navigate('Forgot')
+    // Alert.alert('Recuperación', 'Funcionalidad de recuperación en construcción.');
   };
 
   const [ request, response, prompAsync ] = Google.useAuthRequest({

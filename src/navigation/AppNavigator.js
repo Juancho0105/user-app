@@ -6,6 +6,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import EnterScreen from '../screens/EnterScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 
 // Creamos el objeto Stack
 const Stack = createNativeStackNavigator();
@@ -20,6 +21,12 @@ export default function AppNavigator() {
           name="Login" 
           component={LoginScreen} 
           options={{ headerShown: false }} // Para que no salga la barra arriba en el login
+        />
+
+        <Stack.Screen 
+          name="Forgot" 
+          component={ForgotPasswordScreen} 
+          options={{ headerShown: false }} 
         />
         
         <Stack.Screen 

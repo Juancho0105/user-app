@@ -18,7 +18,6 @@ import { Ionicons } from "@expo/vector-icons";
 import Input from "../components/Input";
 import { useTheme } from "../hooks/useTheme";
 
-// Ajusta esto a tu servicio real (ej: AuthService.forgotPassword(email))
 /*
 import { AuthService } from "../services/Auth.service";
 */
@@ -238,7 +237,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 18,
-    alignSelf: "flex-start",
+    alignSelf: "center",
   },
 
   title: {
