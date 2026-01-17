@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import EnterScreen from '../screens/EnterScreen';
 
 // Creamos el objeto Stack
 const Stack = createNativeStackNavigator();
@@ -24,7 +25,13 @@ export default function AppNavigator() {
         <Stack.Screen 
           name="Register" 
           component={RegisterScreen} 
-          options={{ title: 'Crear Cuenta' }} 
+          options={{ headerShown: false }} 
+        />
+
+        <Stack.Screen 
+          name="Enter" 
+          component={EnterScreen} 
+          options={{ headerShown: false }} 
         />
         
       </Stack.Navigator>

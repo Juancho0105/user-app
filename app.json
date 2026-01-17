@@ -2,6 +2,7 @@
   "expo": {
     "name": "user-app",
     "slug": "user-app",
+    "scheme": "user-app-scheme",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,6 +14,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "bundleIdentifier": "com.users.app",
       "supportsTablet": true
     },
     "android": {
@@ -20,10 +22,19 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.users.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-web-browser"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "73e9971f-e6c3-4ddb-9e6c-eb84c43113d6"
+      }
     }
   }
 }

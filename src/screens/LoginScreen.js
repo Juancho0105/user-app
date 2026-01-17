@@ -1,105 +1,224 @@
 import React, { useState } from 'react';
 import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  Image, 
-  KeyboardAvoidingView, 
-  Platform,
-  ScrollView 
+  View, Text, StyleSheet, TouchableOpacity, Image,
+  KeyboardAvoidingView, Platform, ScrollView, StatusBar, Alert, ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons'
 
-// Componentes personalizados
 import Input from '../components/Input';
+import { useTheme } from '../hooks/useTheme'; 
+import { LoginService } from '../services/Login.service';
 
-// Configuración de diseño
-const COLORS = {
-  primary: '#3576E0',
-  background: '#FFFFFF',
-  textDark: '#1F2937',
-  textLight: '#6B7280',
-  border: '#E5E7EB'
-};
+import * as Google from 'expo-auth-session/providers/google'
+
+const GOOGLE_ID = process.env.EXPO_PUBLIC_GOOGLE_ID;
+
+function isValidEmail(value) {
+  // Simple y suficiente para UI
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(String(value).toLowerCase());
+}
 
 export default function LoginScreen({ navigation }) {
-  // Estado del formulario
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    console.log("Login attempt:", { email, password });
-    // Aquí iría la lógica de autenticación
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { colors, isDark } = useTheme();
+
+  const handleLogin = async () => {
+    // limpiar error previo
+    setErrorMessage('');
+
+    const cleanEmail = email.trim();
+
+    // Validaciones UI
+    if (!cleanEmail || !password) {
+      setErrorMessage('Por favor ingresa tu email y contraseña.');
+      return;
+    }
+    if (!isValidEmail(cleanEmail)) {
+      setErrorMessage('Ingresa un email válido.');
+      return;
+    }
+    if (password.length < 6) {
+      setErrorMessage('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      const response = await LoginService.login(cleanEmail, password);
+
+      // Caso éxito (depende de tu servicio; me baso en tu back: response.status)
+      if (response?.status) {
+        // Aquí normalmente guardarías el token en almacenamiento seguro (luego te digo cómo)
+        navigation.navigate('Enter');
+        return;
+      }
+
+      // Caso: backend responde status false con message
+      const msg = response?.message || 'Credenciales inválidas.';
+      setErrorMessage(msg);
+
+    } catch (err) {
+      // Caso: axios/fetch lanza error
+      // Intentamos extraer mensaje del server
+      const serverMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'No se pudo iniciar sesión. Intenta de nuevo.';
+
+      setErrorMessage(serverMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
+  const handleForgotPassword = () => {
+    // si no tienes pantalla, al menos feedback
+    Alert.alert('Recuperación', 'Funcionalidad de recuperación en construcción.');
+  };
+
+  const [ request, response, prompAsync ] = Google.useAuthRequest({
+    androidClientId: GOOGLE_ID,
+    iosClientId: ''
+  })
+
+  const handleGooglePress = async () => {
+    console.log(GOOGLE_ID)
+    const responseG = await prompAsync()
+    console.log(responseG)
+    console.log(response)
+    console.log(request)
+    // Alert.alert('Próximamente', 'Inicio de sesión con Google estará disponible pronto.');
+  };
+
+  const googleDisabled = false;
+
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+
+      <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1, width: '100%' }}
       >
-        <ScrollView 
-          contentContainerStyle={styles.scrollContainer} 
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
           
-          {/* Header Visual */}
-          <View style={styles.genericIcon} />
-          <Text style={styles.textLogin}>Iniciar Sesión</Text>
+          <View style={[styles.genericIcon, { backgroundColor: isDark ? '#374151' : '#EEF2FF' }]} />
           
-          {/* Campos del Formulario */}
+          <Text style={[styles.textLogin, { color: colors.text }]}>Iniciar Sesión</Text>
+
           <View style={styles.formContainer}>
             <Input 
               placeholder="Email"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(t) => setEmail(t)}
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
             />
             
-            <Input 
+            <Input
               placeholder="Contraseña"
               value={password}
-              onChangeText={setPassword}
-              secureTextEntry={true}
+              onChangeText={(t) => { setPassword(t); }}
+              secureTextEntry={!showPassword}
+              returnKeyType="done"
+              autoComplete="password"
+              textContentType="password"
+              rightElement={
+                <TouchableOpacity
+                  onPress={() => setShowPassword(v => !v)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={22}
+                    color={colors.text}
+                  />
+                </TouchableOpacity>
+              }
             />
-            
-            <TouchableOpacity onPress={() => console.log("Navigate to Recovery")}>
+
+            <TouchableOpacity onPress={handleForgotPassword}>
               <Text style={styles.forgotPassword}>Olvidé mi contraseña</Text>
             </TouchableOpacity>
+
+            {!!errorMessage && (
+              <View style={[styles.errorBox, { borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' }]}>
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
+            )}
           </View>
           
-          {/* Botón Principal */}
-          <TouchableOpacity 
-            style={[styles.btnBase, styles.loginButton]} 
+          <TouchableOpacity
+            style={[
+              styles.btnBase,
+              styles.loginButton,
+              { backgroundColor: colors.primary },
+              isSubmitting && { opacity: 0.75 }
+            ]}
             onPress={handleLogin}
+            disabled={isSubmitting}
           >
-            <Text style={styles.textLoginBtn}>Login</Text>
+            {isSubmitting ? (
+              <ActivityIndicator />
+            ) : (
+              <Text style={styles.textLoginBtn}>Login</Text>
+            )}
           </TouchableOpacity>
 
-          {/* Divisor */}
           <View style={styles.dividerContainer}>
-            <View style={styles.line} /> 
-            <Text style={styles.dividerText}>O</Text>
-            <View style={styles.line} />
-          </View>
+            <View style={[styles.line, { backgroundColor: colors.border }]} />
 
-          {/* Botón Social */}
-          <TouchableOpacity style={[styles.btnBase, styles.googleButton]}>
+            <View style={[styles.dividerBadge, { backgroundColor: colors.background }]}>
+              <Text style={[styles.dividerText, { color: colors.text, opacity: 0.2 }]}>
+                o
+              </Text>
+            </View>
+
+            <View style={[styles.line, { backgroundColor: colors.border }]} />
+          </View>
+          <TouchableOpacity 
+            style={[
+              styles.btnBase, 
+              styles.googleButton, 
+              { borderColor: colors.border, backgroundColor: '#fff' },
+              googleDisabled && { opacity: 0.55 }
+            ]}
+            disabled={googleDisabled}
+            onPress={handleGooglePress}
+          >
             <Image 
               source={require('../../assets/googleIcon.png')} 
               style={styles.googleIcon} 
             />
-            <Text style={styles.googleText}>Continuar con Google</Text>
+            <Text style={[styles.googleText, { color: '#374151' }]}>
+              Continuar con Google
+            </Text>
           </TouchableOpacity>
+
+          {googleDisabled && (
+            <Text style={styles.helperText}>
+              Google Sign-In estará disponible pronto.
+            </Text>
+          )}
           
-          {/* Footer de Registro */}
           <View style={styles.footerContainer}>
-             <Text style={styles.linkText}>¿No tienes cuenta?</Text>
-             <TouchableOpacity onPress={() => console.log("Navigate to Register")}>
-                <Text style={[styles.linkText, styles.registerText]}> Regístrate</Text>
-             </TouchableOpacity>
+            <Text style={styles.linkText}>¿No tienes cuenta?</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={[styles.linkText, { color: colors.primary, fontWeight: '600' }]}> Regístrate</Text>
+            </TouchableOpacity>
           </View>
 
         </ScrollView>
@@ -109,10 +228,7 @@ export default function LoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
+  container: { flex: 1 },
   scrollContainer: {
     flexGrow: 1,
     alignItems: 'center',
@@ -121,7 +237,6 @@ const styles = StyleSheet.create({
   genericIcon: {
     width: 80,
     height: 80,
-    backgroundColor: '#EEF2FF',
     borderRadius: 20,
     marginTop: 40,
     marginBottom: 30,
@@ -129,21 +244,28 @@ const styles = StyleSheet.create({
   textLogin: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#111827',
     marginBottom: 32,
   },
   formContainer: {
     width: '100%',
-    gap: 16, // Espaciado automático entre inputs
-    marginBottom: 24,
+    gap: 16,
+    marginBottom: 16,
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    color: COLORS.textLight,
+    color: '#6B7280',
     fontWeight: '500',
     marginTop: 8,
   },
-  // Botones Generales
+  errorBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+  },
+  errorText: {
+    color: '#B91C1C',
+    fontWeight: '600',
+  },
   btnBase: {
     height: 56,
     width: '100%',
@@ -152,38 +274,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
   },
-  loginButton: {
-    backgroundColor: COLORS.primary,
-    marginBottom: 24,
-  }, 
+  loginButton: { marginBottom: 24 }, 
   textLoginBtn: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
   },
-  // Sección Divisor
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 16,
   },
+
   line: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E5E7EB',
   },
+
+  dividerBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    marginHorizontal: 12,
+  },
+
   dividerText: {
-    marginHorizontal: 10,
-    color: '#9CA3AF',
     fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
-  // Botón Google
   googleButton: {
-    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    gap: 12, // Mantiene icono y texto juntos
+    gap: 12,
   },
   googleIcon: {
     width: 24,
@@ -192,10 +315,13 @@ const styles = StyleSheet.create({
   },
   googleText: {
     fontWeight: '500',
-    color: '#374151',
     fontSize: 16,
   },
-  // Footer
+  helperText: {
+    marginTop: 10,
+    color: '#6B7280',
+    fontSize: 13,
+  },
   footerContainer: {
     flexDirection: 'row',
     marginTop: 'auto',
@@ -204,9 +330,5 @@ const styles = StyleSheet.create({
   linkText: {
     color: '#6B7280',
     fontSize: 14,
-  },
-  registerText: {
-    color: COLORS.primary,
-    fontWeight: '600',
   }
 });
